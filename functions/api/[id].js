@@ -1,10 +1,9 @@
-export async function onRequestDelete(context) {
-  const { DB } = context.env;
-  const { id } = context.params;
-
-  await DB.prepare("DELETE FROM customers WHERE id = ?")
-    .bind(id)
+export async function onRequestDelete({ params, env }) {
+  await env.DB.prepare("DELETE FROM customers WHERE id = ?")
+    .bind(params.id)
     .run();
 
-  return Response.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
