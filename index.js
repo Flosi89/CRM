@@ -1,23 +1,51 @@
 const API_URL = "/api/customers";
 
+let allCustomers = [];    // vollständige Liste aus dem Server
+let sortKey = "id";       // aktueller Sortierschlüssel
+let sortAsc = false;      // Start: ID absteigend (neueste oben)
+let searchTerm = "";      // Suchtext
+
 // -------- Laden --------
 async function loadCustomers() {
   try {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error(`Fehler beim Laden: ${res.status}`);
-    const customers = await res.json();
-
-    const tbody = document.querySelector("#customers tbody");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    customers.forEach((c) => tbody.appendChild(renderRow(c)));
+    allCustomers = await res.json();
+    renderTable();
   } catch (err) {
     alert("Fehler beim Laden der Kunden: " + err.message);
   }
 }
 
-// -------- Zeile rendern (Normalmodus) --------
+// -------- Tabellen-Rendering mit Suche & Sortierung --------
+function renderTable() {
+  const tbody = document.querySelector("#customers tbody");
+  if (!tbody) return;
+
+  // Filtern
+  const term = searchTerm.toLowerCase();
+  let list = allCustomers.filter(c => {
+    const name  = (c.name  || "").toLowerCase();
+    const email = (c.email || "").toLowerCase();
+    const phone = (c.phone || "").toLowerCase();
+    return !term || name.includes(term) || email.includes(term) || phone.includes(term);
+  });
+
+  // Sortieren
+  list.sort((a, b) => {
+    const av = (a[sortKey] ?? "").toString().toLowerCase();
+    const bv = (b[sortKey] ?? "").toString().toLowerCase();
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  // Render
+  tbody.innerHTML = "";
+  list.forEach(c => tbody.appendChild(renderRow(c)));
+}
+
+// -------- Zeile normal --------
 function renderRow(c) {
   const tr = document.createElement("tr");
   tr.dataset.id = c.id;
@@ -31,14 +59,12 @@ function renderRow(c) {
       <button class="btn-del">Löschen</button>
     </td>
   `;
-
   tr.querySelector(".btn-del").addEventListener("click", () => deleteCustomer(c.id));
   tr.querySelector(".btn-edit").addEventListener("click", () => enterEditMode(tr, c));
-
   return tr;
 }
 
-// -------- Edit-Modus in einer Zeile --------
+// -------- Edit-Modus --------
 function enterEditMode(tr, c) {
   tr.classList.add("editing");
   tr.innerHTML = `
@@ -51,35 +77,32 @@ function enterEditMode(tr, c) {
       <button class="btn-cancel">Abbrechen</button>
     </td>
   `;
+  tr.querySelector(".btn-save").addEventListener("click", () => saveEdit(tr, c.id));
+  tr.querySelector(".btn-cancel").addEventListener("click", loadCustomers);
+}
 
-  tr.querySelector(".btn-save").addEventListener("click", async () => {
-    const id = Number(c.id);
-    const name  = tr.querySelector(".inp-name").value.trim();
-    const email = tr.querySelector(".inp-email").value.trim();
-    const phone = tr.querySelector(".inp-phone").value.trim();
+async function saveEdit(tr, id) {
+  const name  = tr.querySelector(".inp-name").value.trim();
+  const email = tr.querySelector(".inp-email").value.trim();
+  const phone = tr.querySelector(".inp-phone").value.trim();
+  if (!name) { alert("Name ist Pflicht"); return; }
 
-    if (!name) { alert("Name ist Pflicht"); return; }
+  try {
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, phone }),
+    });
+    if (!res.ok) throw new Error(await safeText(res));
+    const updated = await res.json();
 
-    try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone }),
-      });
-      if (!res.ok) throw new Error(await safeText(res));
-
-      const updated = await res.json();
-      const fresh = renderRow(updated);
-      tr.replaceWith(fresh);
-    } catch (err) {
-      alert("Update fehlgeschlagen: " + err.message);
-    }
-  });
-
-  tr.querySelector(".btn-cancel").addEventListener("click", async () => {
-    // Einfach neu laden oder Original wiederherstellen
-    loadCustomers();
-  });
+    // Lokale Liste aktualisieren, dann neu rendern
+    const idx = allCustomers.findIndex(x => x.id === id);
+    if (idx >= 0) allCustomers[idx] = updated;
+    renderTable();
+  } catch (err) {
+    alert("Update fehlgeschlagen: " + err.message);
+  }
 }
 
 // -------- Anlegen --------
@@ -87,11 +110,7 @@ async function addCustomer() {
   const name = document.getElementById("name")?.value.trim() ?? "";
   const email = document.getElementById("email")?.value.trim() ?? "";
   const phone = document.getElementById("phone")?.value.trim() ?? "";
-
-  if (!name) {
-    alert("Bitte Name eingeben");
-    return;
-  }
+  if (!name) { alert("Bitte Name eingeben"); return; }
 
   try {
     const res = await fetch(API_URL, {
@@ -100,13 +119,14 @@ async function addCustomer() {
       body: JSON.stringify({ name, email, phone }),
     });
     if (!res.ok) throw new Error(await safeText(res));
+    const created = await res.json();
 
-    // Felder leeren und Liste aktualisieren
+    // lokal ergänzen & neu rendern
+    allCustomers.unshift(created);
     document.getElementById("name").value = "";
     document.getElementById("email").value = "";
     document.getElementById("phone").value = "";
-
-    loadCustomers();
+    renderTable();
   } catch (err) {
     alert("Fehler beim Anlegen: " + err.message);
   }
@@ -115,14 +135,36 @@ async function addCustomer() {
 // -------- Löschen --------
 async function deleteCustomer(id) {
   if (!confirm("Wirklich löschen?")) return;
-
   try {
     const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error(await safeText(res));
-    loadCustomers();
+    allCustomers = allCustomers.filter(x => x.id !== id);
+    renderTable();
   } catch (err) {
     alert("DELETE fehlgeschlagen: " + err.message);
   }
+}
+
+// -------- Suche & Sortier-Klicks --------
+function initSearchAndSort() {
+  document.getElementById("search")?.addEventListener("input", (e) => {
+    searchTerm = e.target.value || "";
+    renderTable();
+  });
+
+  // Klick auf Spaltenköpfe
+  document.querySelectorAll("#customers thead th[data-sort]")?.forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.getAttribute("data-sort");
+      if (sortKey === key) {
+        sortAsc = !sortAsc; // Richtung umschalten
+      } else {
+        sortKey = key;
+        sortAsc = true; // neue Spalte -> aufsteigend starten
+      }
+      renderTable();
+    });
+  });
 }
 
 // -------- Utils --------
@@ -137,5 +179,6 @@ async function safeText(res){ try{ return await res.text(); }catch{ return ""; }
 // -------- Init --------
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("addCustomerBtn")?.addEventListener("click", addCustomer);
+  initSearchAndSort();
   loadCustomers();
 });
