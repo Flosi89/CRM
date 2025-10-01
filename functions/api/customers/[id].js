@@ -1,5 +1,5 @@
 export async function onRequestDelete(context) {
-  const id = context.params.id; // ID aus der URL
+  const id = context.params.id;
   try {
     await context.env.DB.prepare("DELETE FROM customers WHERE id = ?")
       .bind(id)
