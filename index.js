@@ -1,6 +1,6 @@
 const API_URL = "/api/customers";
 
-let allCustomers = [];    // vollständige Liste aus dem Server
+let allCustomers = [];    // vollständige Liste vom Server
 let sortKey = "id";       // aktueller Sortierschlüssel
 let sortAsc = false;      // Start: ID absteigend (neueste oben)
 let searchTerm = "";      // Suchtext
@@ -55,12 +55,14 @@ function renderRow(c) {
     <td class="cell-email">${escapeHtml(c.email || "")}</td>
     <td class="cell-phone">${escapeHtml(c.phone || "")}</td>
     <td class="actions">
+      <button class="btn-notes">Notizen</button>
       <button class="btn-edit">Bearbeiten</button>
       <button class="btn-del">Löschen</button>
     </td>
   `;
   tr.querySelector(".btn-del").addEventListener("click", () => deleteCustomer(c.id));
   tr.querySelector(".btn-edit").addEventListener("click", () => enterEditMode(tr, c));
+  tr.querySelector(".btn-notes").addEventListener("click", () => showActivities(c.id, c.name));
   return tr;
 }
 
@@ -145,14 +147,46 @@ async function deleteCustomer(id) {
   }
 }
 
+// -------- Notizen / Aktivitäten (PFAD BLEIBT: /api/activities) --------
+async function showActivities(customerId, customerName) {
+  // Liste laden
+  const listRes = await fetch(`/api/activities?customer_id=${customerId}`);
+  const items = listRes.ok ? await listRes.json() : [];
+
+  const lines = items.map(
+    (a) =>
+      `${a.done ? "✓" : " "} [${a.type}] ${a.subject}${
+        a.due_at ? " (fällig: " + a.due_at + ")" : ""
+      }`
+  );
+  const current = lines.join("\n") || "(keine Einträge)";
+
+  // Anzeige + einfache Erfassung
+  const add = confirm(
+    `Aktivitäten für ${customerName}:\n\n${current}\n\nNeue Notiz hinzufügen?`
+  );
+  if (!add) return;
+
+  const subject = prompt("Notiztext:");
+  if (!subject) return;
+
+  const res = await fetch("/api/activities", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customer_id: customerId, subject, type: "note" }),
+  });
+  if (!res.ok) return alert("Speichern fehlgeschlagen");
+  alert("Notiz gespeichert");
+}
+
 // -------- Suche & Sortier-Klicks --------
 function initSearchAndSort() {
   document.getElementById("search")?.addEventListener("input", (e) => {
     searchTerm = e.target.value || "";
     renderTable();
+    document.querySelector("#customers tbody")?.scrollTo?.({ top: 0 });
   });
 
-  // Klick auf Spaltenköpfe
   document.querySelectorAll("#customers thead th[data-sort]")?.forEach(th => {
     th.addEventListener("click", () => {
       const key = th.getAttribute("data-sort");
