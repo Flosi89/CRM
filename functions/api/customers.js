@@ -1,17 +1,17 @@
-export async function onRequestGet(context) {
-  const { DB } = context.env;
-  const { results } = await DB.prepare("SELECT * FROM customers").all();
-  return Response.json(results);
+export async function onRequestGet({ env }) {
+  const { results } = await env.DB.prepare("SELECT * FROM customers").all();
+  return new Response(JSON.stringify(results), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-export async function onRequestPost(context) {
-  const { DB } = context.env;
-  const body = await context.request.json();
-  const { name, email, phone } = body;
-
-  await DB.prepare(
+export async function onRequestPost({ request, env }) {
+  const data = await request.json();
+  await env.DB.prepare(
     "INSERT INTO customers (name, email, phone) VALUES (?, ?, ?)"
-  ).bind(name, email, phone).run();
+  ).bind(data.name, data.email, data.phone).run();
 
-  return Response.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
