@@ -2,29 +2,57 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CRM</title>
   <style>
-    :root { --gap: 10px; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { margin-top: 0; }
-    .row { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; }
-    .row input { padding: 8px; min-width: 180px; flex: 1 1 180px; }
-    .row button { padding: 9px 14px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    th { background: #f5f5f5; text-align: left; }
-    .actions button { margin-right: 6px; }
-    @media (max-width: 600px) {
-      .row input { min-width: 120px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      margin: 6px 0;
+    }
+    input {
+      padding: 6px;
+      flex: 1;
+    }
+    button {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+    }
+    th {
+      background: #f5f5f5;
+    }
+    th[data-sort] {
+      cursor: pointer;
+    }
+    tr.editing td {
+      background: #ffffcc;
+    }
+    .actions button {
+      margin-right: 4px;
     }
   </style>
 </head>
 <body>
   <h1>CRM</h1>
 
-  <!-- Eingabezeile -->
+  <!-- Formular zum Hinzufügen -->
   <div class="row">
     <input id="name" type="text" placeholder="Name" />
     <input id="email" type="email" placeholder="Email" />
@@ -32,21 +60,25 @@
     <button id="addCustomerBtn">+ Kunde</button>
   </div>
 
-  <!-- Kundenliste -->
   <h2>Kunden</h2>
+
+  <!-- Suche -->
+  <div class="row" style="margin: 8px 0;">
+    <input id="search" type="text" placeholder="Suche (Name, Email, Telefon)" />
+  </div>
+
+  <!-- Tabelle -->
   <table id="customers">
     <thead>
       <tr>
-        <th style="width:70px;">ID</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Telefon</th>
+        <th data-sort="id" style="width:70px;">ID</th>
+        <th data-sort="name">Name</th>
+        <th data-sort="email">Email</th>
+        <th data-sort="phone">Telefon</th>
         <th style="width:140px;">Aktionen</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- wird von index.js gefüllt -->
-    </tbody>
+    <tbody></tbody>
   </table>
 
   <script src="index.js"></script>
