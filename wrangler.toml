@@ -1,3 +1,7 @@
+
 name = "crm"
-pages_build_output_dir = "./"
-# D1-Bindings NICHT hier – kommen im Cloudflare Dashboard unter Pages > Settings > Functions > D1 bindings
+compatibility_date = "2025-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crm"
