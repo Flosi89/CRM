@@ -1,6 +1,3 @@
-name = "simple-crm"
+name = "crm"
 pages_build_output_dir = "./"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "simple_crm"
+# D1-Bindings NICHT hier – kommen im Cloudflare Dashboard unter Pages > Settings > Functions > D1 bindings
