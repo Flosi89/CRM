@@ -1,7 +1,9 @@
-
 name = "crm"
 compatibility_date = "2025-10-01"
 
+# D1-Binding – Name MUSS zu den JS-Files passen (env.DB)
 [[d1_databases]]
 binding = "DB"
 database_name = "crm"
+# database_id optional – falls vorhanden, hier eintragen:
+# database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
