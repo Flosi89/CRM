@@ -1,95 +1,78 @@
-// -------------------------
-// Kunden laden und anzeigen
-// -------------------------
+const API_URL = "/api/customers";
+
 async function loadCustomers() {
-  const tableBody = document.querySelector("#customers tbody");
-  tableBody.innerHTML = "";
-
   try {
-    const res = await fetch("/api/customers");
-    if (!res.ok) {
-      throw new Error(`Fehler beim Laden: ${res.status}`);
-    }
-
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`Fehler beim Laden: ${res.status}`);
     const customers = await res.json();
 
+    const tbody = document.querySelector("#customers tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
     customers.forEach((c) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
         <td>${c.id}</td>
         <td>${c.name}</td>
-        <td>${c.email}</td>
-        <td>${c.phone || ""}</td>
-        <td>
-          <button onclick="deleteCustomer(${c.id})">🗑️ Löschen</button>
+        <td>${c.email ?? ""}</td>
+        <td>${c.phone ?? ""}</td>
+        <td class="actions">
+          <button onclick="deleteCustomer(${c.id})">Löschen</button>
         </td>
       `;
-      tableBody.appendChild(row);
+      tbody.appendChild(tr);
     });
   } catch (err) {
     alert("Fehler beim Laden der Kunden: " + err.message);
   }
 }
 
-// -------------------------
-// Kunde hinzufügen
-// -------------------------
 async function addCustomer() {
-  const name = document.querySelector("#name").value.trim();
-  const email = document.querySelector("#email").value.trim();
-  const phone = document.querySelector("#phone").value.trim();
+  const name = document.getElementById("name")?.value.trim() ?? "";
+  const email = document.getElementById("email")?.value.trim() ?? "";
+  const phone = document.getElementById("phone")?.value.trim() ?? "";
 
   if (!name) {
-    alert("Bitte Namen eingeben!");
+    alert("Bitte Name eingeben");
     return;
   }
 
   try {
-    const res = await fetch("/api/customers", {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, phone }),
     });
+    if (!res.ok) throw new Error(await res.text());
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Fehler beim Anlegen: ${res.status} ${text}`);
-    }
-
-    document.querySelector("#name").value = "";
-    document.querySelector("#email").value = "";
-    document.querySelector("#phone").value = "";
+    document.getElementById("name").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("phone").value = "";
 
     loadCustomers();
   } catch (err) {
-    alert(err.message);
+    alert("Fehler beim Anlegen: " + err.message);
   }
 }
 
-// -------------------------
-// Kunde löschen
-// -------------------------
 async function deleteCustomer(id) {
   if (!confirm("Wirklich löschen?")) return;
 
   try {
-    const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
     const text = await res.text().catch(() => "");
-
-    if (!res.ok) {
-      throw new Error(`DELETE fehlgeschlagen: ${res.status} ${text}`);
-    }
-
+    if (!res.ok) throw new Error(`${res.status} ${text}`);
     loadCustomers();
   } catch (err) {
-    alert(err.message);
+    alert("DELETE fehlgeschlagen: " + err.message);
   }
 }
 
-// -------------------------
-// Initial laden
-// -------------------------
+window.deleteCustomer = deleteCustomer; // Button-Handler erreichbar machen
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Falls Button fehlt, crasht es NICHT mehr
+  document.getElementById("addCustomerBtn")?.addEventListener("click", addCustomer);
   loadCustomers();
-  document.querySelector("#addCustomerBtn").addEventListener("click", addCustomer);
 });
