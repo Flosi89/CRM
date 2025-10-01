@@ -38,4 +38,24 @@ async function addCustomer(e) {
     body: JSON.stringify({ name, email, phone })
   });
 
-  const data = await res.json
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return alert("POST fehlgeschlagen: " + (data.error || res.status));
+  }
+
+  // Liste aus Server-Antwort übernehmen (oder neu laden)
+  if (data.customers) render(data.customers); else await loadCustomers();
+  e.target.reset();
+}
+
+async function deleteCustomer(id) {
+  const res = await fetch(`/api/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    const t = await res.text();
+    alert("DELETE fehlgeschlagen: " + t);
+  }
+  loadCustomers();
+}
+
+document.getElementById("customerForm").addEventListener("submit", addCustomer);
+document.addEventListener("DOMContentLoaded", loadCustomers);
